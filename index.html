@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat em Tempo Real</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background: #f8f9fa; padding: 20px; }
+        #chat-container { max-width: 500px; margin: auto; padding: 10px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        #messages { list-style: none; padding: 0; max-height: 300px; overflow-y: auto; }
+        .message { padding: 8px; margin: 5px; border-radius: 5px; text-align: left; background: #e3e3e3; }
+        .server-message { color: gray; font-style: italic; }
+        input, button { padding: 10px; margin-top: 10px; }
+        #users { margin-top: 10px; padding: 10px; background: #efefef; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <h2>Chat em Tempo Real</h2>
+        <div id="users"><strong>Usuários Online:</strong> <span id="user-list">Nenhum</span></div>
+        
+        <ul id="messages"></ul>
+
+        <input id="messageInput" autocomplete="off" placeholder="Digite sua mensagem..." />
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+
+    <script>
+        const socket = io(); // Conecta o bunito do garçon 
+        let username = "";
+
+        
+        while (!username) {   
+            username = prompt("Digite seu nome:");
+        }
+        socket.emit("set username", username);
+
+        
+        function sendMessage() {
+            const input = document.getElementById("messageInput");
+            if (input.value.trim()) {
+                socket.emit("chat message", input.value);
+                input.value = "";
+            }
+        }
+
+        
+        socket.on("chat message", ({ username, msg }) => {
+            const li = document.createElement("li");
+            li.innerHTML = `<strong>${username}:</strong> ${msg}`;
+            li.classList.add("message");
+            document.getElementById("messages").appendChild(li);
+            scrollToBottom();
+        });
+
+        
+        socket.on("server message", (msg) => {
+            const li = document.createElement("li");
+            li.textContent = msg;
+            li.classList.add("server-message");
+            document.getElementById("messages").appendChild(li);
+            scrollToBottom();
+        });
+
+        
+        socket.on("user list", (users) => {
+            document.getElementById("user-list").innerText = users.length > 0 ? users.join(", ") : "Nenhum";
+        });
+
+        
+        socket.on("load history", (messages) => {
+            messages.forEach(({ username, msg }) => {
+                const li = document.createElement("li");
+                li.innerHTML = `<strong>${username}:</strong> ${msg}`;
+                li.classList.add("message");
+                document.getElementById("messages").appendChild(li);
+            });
+            scrollToBottom();
+        });
+
+        
+        function scrollToBottom() {
+            const messages = document.getElementById("messages");
+            messages.scrollTop = messages.scrollHeight;
+        }
+    </script>
+</body>
+</html>
